@@ -5,13 +5,14 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/sirupsen/logrus"
+	"github.com/nathan-osman/guessing-game/ui"
+	"go.uber.org/zap"
 )
 
 // Server manages access to the game and hosts the front-end.
 type Server struct {
 	listener net.Listener
-	log      *logrus.Entry
+	logger   *zap.Logger
 	stopped  chan bool
 }
 
@@ -25,19 +26,20 @@ func New(cfg *Config) (*Server, error) {
 		r = mux.NewRouter()
 		s = &Server{
 			listener: l,
-			log:      logrus.WithField("context", "server"),
+			logger:   cfg.Logger.Named("server"),
 			stopped:  make(chan bool),
 		}
 		server = http.Server{
 			Handler: r,
 		}
 	)
+	r.PathPrefix("/").Handler(http.FileServer(ui.Assets))
 	go func() {
 		defer close(s.stopped)
-		defer s.log.Info("server stopped")
-		s.log.Info("server started")
+		defer s.logger.Info("server stopped")
+		s.logger.Info("server started")
 		if err := server.Serve(l); err != nil {
-			s.log.Error(err)
+			s.logger.Error(err.Error())
 		}
 	}()
 	return s, nil

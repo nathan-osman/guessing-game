@@ -10,6 +10,7 @@ import (
 
 	"github.com/nathan-osman/guessing-game/server"
 	"github.com/urfave/cli"
+	"go.uber.org/zap"
 )
 
 func main() {
@@ -23,12 +24,30 @@ func main() {
 			EnvVar: "ADDR",
 			Usage:  "HTTP address to listen on",
 		},
+		cli.BoolFlag{
+			Name:   "debug",
+			EnvVar: "DEBUG",
+			Usage:  "enable debug mode",
+		},
 	}
 	app.Action = func(c *cli.Context) error {
 
+		// Initialize zap
+		var cfg zap.Config
+		if c.Bool("debug") {
+			cfg = zap.NewDevelopmentConfig()
+		} else {
+			cfg = zap.NewProductionConfig()
+		}
+		logger, err := cfg.Build()
+		if err != nil {
+			return err
+		}
+
 		// Initialize the server
 		s, err := server.New(&server.Config{
-			Addr: c.String("addr"),
+			Addr:   c.String("addr"),
+			Logger: logger,
 		})
 		if err != nil {
 			return err
