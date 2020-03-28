@@ -17,8 +17,8 @@ type gameState struct {
 	GuesserIndex        int                `json:"guesser_index"`
 }
 
-// State encodes the game's current state as a JSON document.
-func (g *Game) State() ([]byte, error) {
+// State encodes the game's current state as a JSON string.
+func (g *Game) State() (string, error) {
 	var (
 		data []byte
 		err  = g.wrap(stateAny, func() error {
@@ -30,5 +30,5 @@ func (g *Game) State() ([]byte, error) {
 			return nil
 		})
 	)
-	return data, err
+	return string(data), err
 }

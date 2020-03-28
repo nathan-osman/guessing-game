@@ -1,5 +1,7 @@
 package game
 
+import "encoding/json"
+
 const (
 	eventPlayerAdded     = "player-added"
 	eventPlayerRemoved   = "player-removed"
@@ -39,8 +41,9 @@ type guessMadeEvent struct {
 
 // sendEvent sends the specified event on the event channel.
 func (g *Game) sendEvent(eventType string, data interface{}) {
-	g.eventChan <- &baseEvent{
+	b, _ := json.Marshal(&baseEvent{
 		Type: eventType,
 		Data: data,
-	}
+	})
+	g.eventChan <- string(b)
 }

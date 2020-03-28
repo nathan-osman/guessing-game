@@ -28,7 +28,7 @@ var (
 type Game struct {
 	mutex     sync.Mutex
 	state     gameState
-	eventChan chan<- interface{}
+	eventChan chan<- string
 }
 
 // wrap invokes the specified function with the mutex locked and confirms that
@@ -61,13 +61,13 @@ func (g *Game) init() {
 }
 
 // New creates and initializes a new game.
-func New(name string, eventChan chan<- interface{}) *Game {
+func New(cfg *Config) *Game {
 	g := &Game{
 		state: gameState{
 			GUID: uuid.Must(uuid.NewRandom()).String(),
-			Name: name,
+			Name: cfg.Name,
 		},
-		eventChan: eventChan,
+		eventChan: cfg.EventChan,
 	}
 	g.init()
 	return g
