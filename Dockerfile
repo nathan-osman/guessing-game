@@ -16,5 +16,5 @@ RUN go build
 
 # Lastly, create a container with the resulting binary
 FROM scratch
-COPY --from=1 /src/guessing-game /usr/local/bin
+COPY --from=1 /src/guessing-game /usr/local/bin/
 ENTRYPOINT ["/usr/local/bin/guessing-game"]
