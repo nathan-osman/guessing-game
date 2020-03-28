@@ -1,0 +1,12 @@
+@import '../sass/variables';
+
+.Header {
+  background-color: $foreground-color;
+  color: $background-color;
+  padding: 8px 0;
+
+  h1 {
+    font-weight: normal;
+    margin: 0;
+  }
+}
