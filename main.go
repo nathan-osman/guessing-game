@@ -1,3 +1,5 @@
+//go:generate go run ui/generate.go
+
 package main
 
 import (
