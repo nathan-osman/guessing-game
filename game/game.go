@@ -3,141 +3,243 @@ package game
 import (
 	"errors"
 	"sync"
+
+	"github.com/google/uuid"
 )
 
 const (
-	// StateLobby - waiting for players to leave or join.
-	StateLobby = "lobby"
-	// StateWaitingForQuestion - waiting for the question to be selected.
-	StateWaitingForQuestion = "waiting-for-question"
-	// StateWaitingForAnswers - waiting for players to submit their answers.
-	StateWaitingForAnswers = "waiting-for-answers"
-	// StateGuessing - waiting for a player to make a guess.
-	StateGuessing = "guessing"
-	// StateFinished - the game has completed.
-	StateFinished = "finished"
-
-	// IndexNone indicates a non-existent item.
-	IndexNone = -1
+	stateWaitingForPlayers  = "waiting-for-players"
+	stateWaitingForQuestion = "waiting-for-question"
+	stateWaitingForAnswers  = "waiting-for-answers"
+	stateWaitingForGuess    = "waiting-for-guess"
+	stateWaitingForRestart  = "waiting-for-restart"
 )
 
 var (
-	errInvalidState = errors.New("you can't do that right now")
-	errInvalidIndex = errors.New("invalid index")
-	errUnauthorized = errors.New("you are not permitted to do that")
-	errDuplicate    = errors.New("another player has already submitted this")
-	errInvalidGuess = errors.New("your guess is invalid")
+	errInvalidAction    = errors.New("invalid action")
+	errInvalidParameter = errors.New("invalid parameter")
+	errDuplicateAnswer  = errors.New("duplicate answer")
 )
 
 // Game maintains game state during gameplay. Great care has been taken to make
 // sure that the methods for this type are thread-safe since they will be
 // invoked from many different goroutines.
 type Game struct {
-	mutex sync.Mutex
-
-	Name         string    `json:"name"`
-	State        string    `json:"state"`
-	Players      []*Player `json:"players"`
-	Answers      []*Answer `json:"answers"`
-	Guesses      []*Guess  `json:"guesses"`
-	Question     string    `json:"question"`
-	AskerIndex   int       `json:"asker_index"`
-	GuesserIndex int       `json:"guesser_index"`
+	mutex               sync.Mutex
+	name                string
+	state               string
+	playerSequence      []string
+	players             map[string]*Player
+	answersByAnswerGUID map[string]*Answer
+	answersByPlayerGUID map[string]*Answer
+	lastGuess           *Guess
+	question            string
+	guesserIndex        int
+	eventChan           chan<- interface{}
 }
 
-// Add adds a new player to the game and returns their index.
-func (g *Game) Add(name string) (int, error) {
+// wrap invokes the specified function with the mutex locked and confirms that
+// the game is in the specified state.
+func (g *Game) wrap(state string, fn func() error) error {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+	if g.state != state {
+		return errInvalidAction
+	}
+	return fn()
+}
+
+// init resets the game to its initial state with the exception of player and
+// player sequence data.
+func (g *Game) init() {
+	g.state = stateWaitingForPlayers
+	if len(g.playerSequence) >= 2 {
+		g.playerSequence = append(
+			g.playerSequence[:1],
+			g.playerSequence[0],
+		)
+	}
+	if g.players == nil {
+		g.players = map[string]*Player{}
+	}
+	g.answersByAnswerGUID = map[string]*Answer{}
+	g.answersByPlayerGUID = map[string]*Answer{}
+	g.lastGuess = nil
+}
+
+// New creates and initializes a new game.
+func New(name string, eventChan chan<- interface{}) *Game {
+	g := &Game{
+		name:      name,
+		eventChan: eventChan,
+	}
+	g.init()
+	return g
+}
+
+// Add adds a new player to the game and returns their GUID. If the current
+// asker is not set, then the user is assigned that position.
+func (g *Game) Add(name string) (string, error) {
 	var (
-		playerIndex int
-		err         = g.wrap(StateLobby, func() error {
-			playerIndex = len(g.Players)
-			g.Players = append(g.Players, &Player{Name: name})
+		playerGUID string
+		err        = g.wrap(stateWaitingForPlayers, func() error {
+			playerGUID = uuid.Must(uuid.NewRandom()).String()
+			p := &Player{
+				Name: name,
+			}
+			g.playerSequence = append(g.playerSequence, playerGUID)
+			g.players[playerGUID] = p
+			g.sendEvent(eventPlayerAdded, &playerAddedEvent{
+				GUID: playerGUID,
+				Name: name,
+			})
 			return nil
 		})
 	)
-	return playerIndex, err
+	return playerGUID, err
 }
 
-// Start begins the game. Only the current asker may do this.
-func (g *Game) Start(playerIndex int) error {
-	return g.wrap(StateLobby, func() error {
-		if playerIndex != g.AskerIndex {
-			return errUnauthorized
+// Remove removes the specified player from the game.
+func (g *Game) Remove(playerGUID string) error {
+	return g.wrap(stateWaitingForPlayers, func() error {
+		for i, p := range g.playerSequence {
+			if p == playerGUID {
+				g.playerSequence[i] = g.playerSequence[len(g.playerSequence)-1]
+				g.playerSequence = g.playerSequence[:len(g.playerSequence)-1]
+				break
+			}
 		}
-		g.State = StateWaitingForQuestion
+		delete(g.players, playerGUID)
+		g.sendEvent(eventPlayerRemoved, &playerRemovedEvent{
+			GUID: playerGUID,
+		})
 		return nil
 	})
 }
 
-// Ask submits a question for the game.
-func (g *Game) Ask(playerIndex int, question string) error {
-	return g.wrap(StateWaitingForQuestion, func() error {
-		if playerIndex != g.AskerIndex {
-			return errUnauthorized
+// Start begins the game. Only the first player may do this and only when there
+// are at least three players in the game.
+func (g *Game) Start(playerGUID string) error {
+	return g.wrap(stateWaitingForPlayers, func() error {
+		if playerGUID != g.playerSequence[0] || len(g.players) < 3 {
+			return errInvalidAction
 		}
-		g.Question = question
-		g.State = StateWaitingForAnswers
+		g.state = stateWaitingForQuestion
+		g.sendEvent(eventGameStarted, nil)
+		return nil
+	})
+}
+
+// Ask submits the question for the game. Only the first player may do this.
+func (g *Game) Ask(playerGUID, question string) error {
+	return g.wrap(stateWaitingForQuestion, func() error {
+		if playerGUID != g.playerSequence[0] {
+			return errInvalidAction
+		}
+		g.state = stateWaitingForAnswers
+		g.sendEvent(eventQuestionAsked, &questionAskedEvent{
+			Question: question,
+		})
 		return nil
 	})
 }
 
 // Answer submits an answer for the game. The answer cannot be a duplicate of
-// any existing answers
-func (g *Game) Answer(playerIndex int, text string) error {
-	return g.wrap(StateWaitingForAnswers, func() error {
-		if g.answerExists(text) {
-			return errDuplicate
-		}
-		i, a := g.findAnswer(playerIndex)
-		if i == IndexNone {
-			i = len(g.Answers)
-			a = &Answer{
-				PlayerIndex: playerIndex,
+// any existing answers. If a player has already submitted an answer, it is
+// modified.
+func (g *Game) Answer(playerGUID, text string) error {
+	return g.wrap(stateWaitingForAnswers, func() error {
+		for _, a := range g.answersByAnswerGUID {
+			if a.Text == text {
+				return errDuplicateAnswer
 			}
-			g.Answers = append(g.Answers, a)
+		}
+		a := g.answersByPlayerGUID[playerGUID]
+		if a == nil {
+			answerGUID := uuid.Must(uuid.NewRandom()).String()
+			a = &Answer{
+				GUID:       answerGUID,
+				PlayerGUID: playerGUID,
+			}
+			g.answersByAnswerGUID[answerGUID] = a
+			g.answersByPlayerGUID[playerGUID] = a
 		}
 		a.Text = text
-		if len(g.Answers) == len(g.Players) {
-			g.State = StateGuessing
+		if len(g.answersByAnswerGUID) == len(g.players) {
+			g.state = stateWaitingForGuess
+			g.guesserIndex = 1
+			g.sendEvent(eventAnswersReceived, &answersReceivedEvent{
+				Answers: g.answersByAnswerGUID,
+			})
 		}
 		return nil
 	})
 }
 
-// Guess registers a guess for a particular player.
-func (g *Game) Guess(playerIndex, guessPlayerIndex, guessAnswerIndex int) error {
-	return g.wrap(StateGuessing, func() error {
-		if playerIndex != g.GuesserIndex {
-			return errUnauthorized
+// Guess registers a guess for a particular player. If the guess was
+// successful, the player gains a point and continues guessing. If not, the
+// next player takes their turn. If at any point only two players remain,
+// the game is over and the game is reset (except for scores, which are
+// accumulated).
+func (g *Game) Guess(playerGUID, guessPlayerGUID, guessAnswerGUID string) error {
+	return g.wrap(stateWaitingForGuess, func() error {
+		if playerGUID != g.playerSequence[g.guesserIndex] {
+			return errInvalidAction
 		}
-		if !g.playerIndexValid(guessPlayerIndex) ||
-			!g.answerIndexValid(guessAnswerIndex) {
-			return errInvalidIndex
+		if _, ok := g.players[guessPlayerGUID]; !ok {
+			return errInvalidParameter
 		}
-		if g.Players[guessPlayerIndex].Out {
-			return errInvalidGuess
+		if _, ok := g.answersByAnswerGUID[guessAnswerGUID]; !ok {
+			return errInvalidParameter
 		}
-		good := false
-		i, _ := g.findAnswer(guessPlayerIndex)
-		if i == guessAnswerIndex {
-			good = true
-		}
-		guess := &Guess{
-			PlayerIndex:      playerIndex,
-			GuessPlayerIndex: guessPlayerIndex,
-			GuessAnswerIndex: guessAnswerIndex,
-			Good:             good,
-		}
-		g.Guesses = append(g.Guesses, guess)
+		var (
+			good  = g.answersByPlayerGUID[guessPlayerGUID].GUID == guessAnswerGUID
+			guess = &Guess{
+				PlayerGUID:      playerGUID,
+				GuessPlayerGUID: guessPlayerGUID,
+				GuessAnswerGUID: guessAnswerGUID,
+				Good:            good,
+			}
+		)
+		g.lastGuess = guess
+		g.sendEvent(eventGuessMade, &guessMadeEvent{Guess: guess})
 		if good {
-			g.Players[playerIndex].Score++
-			g.Players[guessPlayerIndex].Out = true
-			if g.remainingPlayers() == len(g.Players)-1 {
-				g.State = StateFinished
+			g.players[playerGUID].Score++
+			g.players[guessPlayerGUID].Out = true
+			remainingPlayers := len(g.players)
+			for _, p := range g.players {
+				if p.Out {
+					remainingPlayers--
+				}
+			}
+			if remainingPlayers <= 2 {
+				g.state = stateWaitingForRestart
+				g.sendEvent(eventGameFinished, nil)
 			}
 		} else {
-			g.advanceGuesser()
+			for {
+				g.guesserIndex++
+				if g.guesserIndex >= len(g.playerSequence) {
+					g.guesserIndex = 0
+				}
+				if !g.players[g.playerSequence[g.guesserIndex]].Out {
+					break
+				}
+			}
 		}
+		return nil
+	})
+}
+
+// Restart begins the game again, allowing new players to join and existing
+// players to leave. Only the current asker may restart the game.
+func (g *Game) Restart(playerGUID string) error {
+	return g.wrap(stateWaitingForRestart, func() error {
+		if playerGUID != g.playerSequence[0] {
+			return errInvalidAction
+		}
+		g.init()
+		g.sendEvent(eventGameRestarted, nil)
 		return nil
 	})
 }
