@@ -1,0 +1,19 @@
+@import 'sass/mixins';
+@import 'sass/variables';
+
+body {
+  font-family: sans-serif;
+  margin: 0;
+}
+
+.container {
+
+  @include desktop {
+    margin: auto;
+    max-width: $desktop-min-width;
+  }
+
+  @include mobile {
+    margin: 0 20px;
+  }
+}
