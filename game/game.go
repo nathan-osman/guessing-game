@@ -134,6 +134,7 @@ func (g *Game) Ask(playerGUID, question string) error {
 		if playerGUID != g.state.PlayerSequence[0] {
 			return errInvalidAction
 		}
+		g.state.Question = question
 		g.state.State = stateWaitingForAnswers
 		g.sendEvent(eventQuestionAsked, &questionAskedEvent{
 			Question: question,
