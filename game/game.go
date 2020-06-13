@@ -121,7 +121,9 @@ func (g *Game) Start(playerGUID string) error {
 			return errInvalidAction
 		}
 		g.state.State = stateWaitingForQuestion
-		g.sendEvent(eventGameStarted, nil)
+		g.sendEvent(eventGameStarted, &gameStartedEvent{
+			PlayerSequence: g.state.PlayerSequence,
+		})
 		return nil
 	})
 }

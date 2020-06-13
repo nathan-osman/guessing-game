@@ -27,6 +27,10 @@ type playerRemovedEvent struct {
 	GUID string `json:"guid"`
 }
 
+type gameStartedEvent struct {
+	PlayerSequence []string `json:"player_sequence"`
+}
+
 type questionAskedEvent struct {
 	Question string `json:"question"`
 }
