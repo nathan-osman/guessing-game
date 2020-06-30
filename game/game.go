@@ -28,7 +28,7 @@ var (
 type Game struct {
 	mutex     sync.Mutex
 	state     gameState
-	eventChan chan<- string
+	eventChan chan<- interface{}
 }
 
 // wrap invokes the specified function with the mutex locked and confirms that
@@ -85,10 +85,13 @@ func (g *Game) Add(name string) (string, error) {
 			}
 			g.state.PlayerSequence = append(g.state.PlayerSequence, playerGUID)
 			g.state.Players[playerGUID] = p
-			g.sendEvent(eventPlayerAdded, &playerAddedEvent{
-				GUID: playerGUID,
-				Name: name,
-			})
+			g.eventChan <- &baseEvent{
+				Type: eventPlayerAdded,
+				Data: &playerAddedData{
+					GUID: playerGUID,
+					Name: name,
+				},
+			}
 			return nil
 		})
 	)
@@ -106,9 +109,12 @@ func (g *Game) Remove(playerGUID string) error {
 			}
 		}
 		delete(g.state.Players, playerGUID)
-		g.sendEvent(eventPlayerRemoved, &playerRemovedEvent{
-			GUID: playerGUID,
-		})
+		g.eventChan <- &baseEvent{
+			Type: eventPlayerRemoved,
+			Data: &playerRemovedData{
+				GUID: playerGUID,
+			},
+		}
 		return nil
 	})
 }
@@ -121,9 +127,12 @@ func (g *Game) Start(playerGUID string) error {
 			return errInvalidAction
 		}
 		g.state.State = stateWaitingForQuestion
-		g.sendEvent(eventGameStarted, &gameStartedEvent{
-			PlayerSequence: g.state.PlayerSequence,
-		})
+		g.eventChan <- &baseEvent{
+			Type: eventGameStarted,
+			Data: &gameStartedData{
+				PlayerSequence: g.state.PlayerSequence,
+			},
+		}
 		return nil
 	})
 }
@@ -136,9 +145,12 @@ func (g *Game) Ask(playerGUID, question string) error {
 		}
 		g.state.Question = question
 		g.state.State = stateWaitingForAnswers
-		g.sendEvent(eventQuestionAsked, &questionAskedEvent{
-			Question: question,
-		})
+		g.eventChan <- &baseEvent{
+			Type: eventQuestionAsked,
+			Data: &questionAskedData{
+				Question: question,
+			},
+		}
 		return nil
 	})
 }
@@ -167,9 +179,12 @@ func (g *Game) Answer(playerGUID, text string) error {
 		if len(g.state.AnswersByAnswerGUID) == len(g.state.Players) {
 			g.state.State = stateWaitingForGuess
 			g.state.GuesserIndex = 1
-			g.sendEvent(eventAnswersReceived, &answersReceivedEvent{
-				Answers: g.state.AnswersByAnswerGUID,
-			})
+			g.eventChan <- &baseEvent{
+				Type: eventAnswersReceived,
+				Data: &answersReceivedData{
+					Answers: g.state.AnswersByAnswerGUID,
+				},
+			}
 		}
 		return nil
 	})
@@ -201,7 +216,10 @@ func (g *Game) Guess(playerGUID, guessPlayerGUID, guessAnswerGUID string) error 
 			}
 		)
 		g.state.LastGuess = guess
-		g.sendEvent(eventGuessMade, &guessMadeEvent{Guess: guess})
+		g.eventChan <- &baseEvent{
+			Type: eventGuessMade,
+			Data: &guessMadeData{Guess: guess},
+		}
 		if good {
 			g.state.Players[playerGUID].Score++
 			g.state.Players[guessPlayerGUID].Out = true
@@ -213,7 +231,9 @@ func (g *Game) Guess(playerGUID, guessPlayerGUID, guessAnswerGUID string) error 
 			}
 			if remainingPlayers <= 2 {
 				g.state.State = stateWaitingForRestart
-				g.sendEvent(eventGameFinished, nil)
+				g.eventChan <- &baseEvent{
+					Type: eventGameFinished,
+				}
 			}
 		} else {
 			for {
@@ -238,7 +258,9 @@ func (g *Game) Restart(playerGUID string) error {
 			return errInvalidAction
 		}
 		g.init()
-		g.sendEvent(eventGameRestarted, nil)
+		g.eventChan <- &baseEvent{
+			Type: eventGameRestarted,
+		}
 		return nil
 	})
 }

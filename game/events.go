@@ -1,7 +1,5 @@
 package game
 
-import "encoding/json"
-
 const (
 	eventPlayerAdded     = "player-added"
 	eventPlayerRemoved   = "player-removed"
@@ -18,36 +16,27 @@ type baseEvent struct {
 	Data interface{} `json:"data"`
 }
 
-type playerAddedEvent struct {
+type playerAddedData struct {
 	GUID string `json:"guid"`
 	Name string `json:"name"`
 }
 
-type playerRemovedEvent struct {
+type playerRemovedData struct {
 	GUID string `json:"guid"`
 }
 
-type gameStartedEvent struct {
+type gameStartedData struct {
 	PlayerSequence []string `json:"player_sequence"`
 }
 
-type questionAskedEvent struct {
+type questionAskedData struct {
 	Question string `json:"question"`
 }
 
-type answersReceivedEvent struct {
+type answersReceivedData struct {
 	Answers map[string]*Answer `json:"answers"`
 }
 
-type guessMadeEvent struct {
+type guessMadeData struct {
 	Guess *Guess `json:"guess"`
-}
-
-// sendEvent sends the specified event on the event channel.
-func (g *Game) sendEvent(eventType string, data interface{}) {
-	b, _ := json.Marshal(&baseEvent{
-		Type: eventType,
-		Data: data,
-	})
-	g.eventChan <- string(b)
 }
