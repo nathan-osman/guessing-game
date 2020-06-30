@@ -4,7 +4,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 	"github.com/nathan-osman/guessing-game/ui"
 	"go.uber.org/zap"
 )
@@ -23,7 +23,7 @@ func New(cfg *Config) (*Server, error) {
 		return nil, err
 	}
 	var (
-		r = mux.NewRouter()
+		r = chi.NewRouter()
 		s = &Server{
 			listener: l,
 			logger:   cfg.Logger.Named("server"),
@@ -33,7 +33,7 @@ func New(cfg *Config) (*Server, error) {
 			Handler: r,
 		}
 	)
-	r.PathPrefix("/").Handler(http.FileServer(ui.Assets))
+	r.Mount("/", http.FileServer(ui.Assets))
 	go func() {
 		defer close(s.stopped)
 		defer s.logger.Info("server stopped")
