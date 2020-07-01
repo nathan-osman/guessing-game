@@ -43,6 +43,7 @@ func main() {
 		if err != nil {
 			return err
 		}
+		defer logger.Sync()
 
 		// Initialize the server
 		s, err := server.New(&server.Config{
