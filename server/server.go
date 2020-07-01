@@ -13,11 +13,12 @@ import (
 
 // Server manages access to the game and hosts the front-end.
 type Server struct {
-	mutex    sync.Mutex
-	listener net.Listener
-	logger   *zap.Logger
-	managers map[string]*manager.Manager
-	stopped  chan bool
+	mutex      sync.Mutex
+	listener   net.Listener
+	baseLogger *zap.Logger
+	logger     *zap.Logger
+	managers   map[string]*manager.Manager
+	stopped    chan bool
 }
 
 // New creates a new server instance.
@@ -29,10 +30,11 @@ func New(cfg *Config) (*Server, error) {
 	var (
 		r = chi.NewRouter()
 		s = &Server{
-			listener: l,
-			logger:   cfg.Logger.Named("server"),
-			managers: map[string]*manager.Manager{},
-			stopped:  make(chan bool),
+			listener:   l,
+			baseLogger: cfg.Logger,
+			logger:     cfg.Logger.Named("server"),
+			managers:   map[string]*manager.Manager{},
+			stopped:    make(chan bool),
 		}
 		server = http.Server{
 			Handler: r,
