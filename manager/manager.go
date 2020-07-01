@@ -63,6 +63,11 @@ func New(cfg *Config) *Manager {
 	return m
 }
 
+// Name returns the name of the game.
+func (m *Manager) Name() string {
+	return m.game.Name()
+}
+
 // Connect is invoked when a new connection is received.
 func (m *Manager) Connect() {
 	//...

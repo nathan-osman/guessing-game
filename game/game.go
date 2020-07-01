@@ -73,6 +73,13 @@ func New(cfg *Config) *Game {
 	return g
 }
 
+// Name returns the current name of the game.
+func (g *Game) Name() string {
+	g.mutex.Lock()
+	defer g.mutex.Unlock()
+	return g.state.Name
+}
+
 // Add adds a new player to the game and returns their GUID. If the current
 // asker is not set, then the user is assigned that position.
 func (g *Game) Add(name string) (string, error) {
