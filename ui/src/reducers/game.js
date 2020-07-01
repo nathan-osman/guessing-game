@@ -1,6 +1,4 @@
 import {
-  ADD_PLAYER,
-  REMOVE_PLAYER,
   START_GAME,
   SET_QUESTION,
   SET_ANSWERS,
@@ -11,27 +9,15 @@ import {
   WAITING_FOR_PLAYERS,
   WAITING_FOR_QUESTION,
   WAITING_FOR_ANSWERS,
-  WAITING_FOR_GUESS,
-  WAITING_FOR_RESTART
+  WAITING_FOR_GUESS
 } from '../constants/gameStates';
-import players from './players';
 
 const initialState = {
   state: WAITING_FOR_PLAYERS
-}
+};
 
 export default (state = initialState, action) => {
   switch (action.type) {
-    case ADD_PLAYER:
-      return {
-        ...state,
-        players: players(state.players, action)
-      }
-    case REMOVE_PLAYER:
-      return {
-        ...state,
-        players: players(state.players, action)
-      }
     case START_GAME:
       return {
         ...state,
