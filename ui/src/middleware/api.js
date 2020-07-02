@@ -5,9 +5,13 @@ import {
 } from "../constants/actionTypes";
 
 export default store => next => action => {
-  const url = action['url'];
+  let url = action['url'];
   if (typeof url === 'undefined') {
     return next(action);
+  }
+  const prefix = process.env.REACT_APP_API_PREFIX;
+  if (typeof prefix !== 'undefined') {
+    url = `${prefix}${url}`;
   }
   store.dispatch({ type: ASYNC_START });
   fetch(url)
