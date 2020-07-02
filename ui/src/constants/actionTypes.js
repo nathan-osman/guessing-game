@@ -4,6 +4,7 @@ export const SET_ERROR = 'SET_ERROR';
 export const CLEAR_ERROR = 'CLEAR_ERROR';
 
 export const SET_GAMES = 'SET_GAMES';
+export const CREATE_GAME = 'CREATE_GAME';
 
 export const ADD_PLAYER = 'ADD_PLAYER';
 export const REMOVE_PLAYER = 'REMOVE_PLAYER';
