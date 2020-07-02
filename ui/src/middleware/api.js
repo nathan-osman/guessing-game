@@ -10,7 +10,7 @@ const transformURL = (typeof API_HOST !== 'undefined')
   : u => u;
 
 export default store => next => action => {
-  const { url, data } = action['url'];
+  const { url, data, errorMessage } = action;
   if (typeof url === 'undefined') {
     return next(action);
   }
@@ -32,7 +32,7 @@ export default store => next => action => {
     .catch(error => {
       store.dispatch({
         type: SET_ERROR,
-        message: "Unable to retrieve the list of active games"
+        message: errorMessage || "An unknown error occurred."
       });
     })
     .finally(() => {
