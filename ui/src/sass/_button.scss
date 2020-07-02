@@ -2,20 +2,33 @@
 
 .buttons {
   border-top: 1px solid $foreground-color;
+  column-gap: 10px;
+  display: grid;
+  grid-auto-columns: min-content;
   margin-top: $margin-spacing * 2;
   padding-top: $margin-spacing;
+
+  .button {
+    grid-row: 1;
+  }
 }
 
 .button {
   background-color: $foreground-color;
   border: none;
-  border-radius: $border-radius;
   color: white;
   cursor: pointer;
+  display: inline-block;
+  font-size: $font-size-sm;
   padding: $padding-controls-v $padding-controls-h;
   text-decoration: none;
+  white-space: nowrap;
 
   &:hover {
     background-color: $foreground-highlight-color;
+  }
+
+  &:focus {
+    outline: 2px solid black;
   }
 }

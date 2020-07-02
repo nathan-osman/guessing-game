@@ -1,0 +1,11 @@
+@import 'variables';
+
+.input {
+  border: 1px solid $foreground-color;
+  padding: $padding-controls-v $padding-controls-v;
+
+  &:focus {
+    border-color: $foreground-highlight-color;
+    outline: 1px solid $foreground-highlight-color;
+  }
+}

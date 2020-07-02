@@ -31,7 +31,7 @@ class Home extends React.Component {
           })
         }
         <div className="buttons">
-          <Link className="button" to="/create">Create New Game</Link>
+          <Link className="button" to="/create">Create</Link>
         </div>
       </div>
     );
