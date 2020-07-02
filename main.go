@@ -15,8 +15,8 @@ import (
 
 func main() {
 	app := cli.NewApp()
-	app.Name = "i5"
-	app.Usage = "reverse proxy for Docker containers"
+	app.Name = "guessing-game"
+	app.Usage = "interactive multiplayer browser-based game"
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
 			Name:   "addr",
@@ -48,6 +48,7 @@ func main() {
 		// Initialize the server
 		s, err := server.New(&server.Config{
 			Addr:   c.String("addr"),
+			Debug:  c.Bool("debug"),
 			Logger: logger,
 		})
 		if err != nil {

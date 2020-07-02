@@ -15,10 +15,21 @@ import (
 type Server struct {
 	mutex      sync.Mutex
 	listener   net.Listener
+	debug      bool
 	baseLogger *zap.Logger
 	logger     *zap.Logger
 	managers   map[string]*manager.Manager
 	stopped    chan bool
+}
+
+// HTTP middleware setting a value on the request context
+func (s *Server) addCORSHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.debug {
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 // New creates a new server instance.
@@ -31,6 +42,7 @@ func New(cfg *Config) (*Server, error) {
 		r = chi.NewRouter()
 		s = &Server{
 			listener:   l,
+			debug:      cfg.Debug,
 			baseLogger: cfg.Logger,
 			logger:     cfg.Logger.Named("server"),
 			managers:   map[string]*manager.Manager{},
@@ -42,6 +54,7 @@ func New(cfg *Config) (*Server, error) {
 	)
 	r.Mount("/", http.FileServer(ui.Assets))
 	r.Route("/api", func(r chi.Router) {
+		r.Use(s.addCORSHeader)
 		r.Get("/games", s.apiGames)
 		r.Post("/join", s.apiJoin)
 		r.Post("/create", s.apiCreate)
