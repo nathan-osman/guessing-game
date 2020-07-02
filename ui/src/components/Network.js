@@ -27,7 +27,9 @@ class Network extends React.Component {
             <div className="header">Error</div>
             {errorMessage}
             <div className="buttons">
-              <button onClick={this.props.clearError}>OK</button>
+              <button className="button" onClick={this.props.clearError}>
+                OK
+              </button>
             </div>
           </div>
         }
