@@ -1,0 +1,19 @@
+@import 'variables';
+
+.games {
+  display: grid;
+  row-gap: 10px;
+  margin: $margin-spacing * 2 0;
+}
+
+.game {
+  background-color: $background-highlight-color;
+  color: $foreground-color;
+  display: block;
+  padding: $padding-controls;
+  text-decoration: none;
+
+  &:hover {
+    background-color: white;
+  }
+}

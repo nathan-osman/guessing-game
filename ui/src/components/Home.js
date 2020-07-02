@@ -15,7 +15,7 @@ class Home extends React.Component {
   }
 
   render() {
-    const games = this.props.payload || [];
+    const games = this.props.games || [];
     return (
       <div className="container">
         <p>Welcome to the guessing game!</p>
@@ -23,12 +23,17 @@ class Home extends React.Component {
           Games that have been created are shown below.
           You can join one or create your own!
         </p>
-        {this.props.games &&
-          this.props.games.map(game => {
-            return (
-              <div>{game.name}</div>
-            );
-          })
+        {games
+          ? <div className="games">
+            {
+              games.map(game => {
+                return (
+                  <Link className="game" to="/join">{game.name}</Link>
+                );
+              })
+            }
+          </div>
+          : <div>NO GAMES, WAT</div>
         }
         <div className="buttons">
           <Link className="button" to="/create">Create</Link>
