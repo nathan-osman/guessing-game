@@ -4,17 +4,18 @@ import {
   SET_ERROR
 } from "../constants/actionTypes";
 
+const API_HOST = process.env.REACT_APP_API_HOST;
+const transformURL = (typeof API_HOST !== 'undefined')
+  ? u => `http://${API_HOST}${u}`
+  : u => u;
+
 export default store => next => action => {
-  let url = action['url'];
+  const { url, data } = action['url'];
   if (typeof url === 'undefined') {
     return next(action);
   }
-  const prefix = process.env.REACT_APP_API_PREFIX;
-  if (typeof prefix !== 'undefined') {
-    url = `${prefix}${url}`;
-  }
   store.dispatch({ type: ASYNC_START });
-  fetch(url)
+  fetch(transformURL(url), data)
     .then(response => {
       if (!response.ok) {
         throw Error(response.statusText);
