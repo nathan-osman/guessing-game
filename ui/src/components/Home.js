@@ -23,8 +23,8 @@ class Home extends React.Component {
           Games that have been created are shown below.
           You can join one or create your own!
         </p>
-        {games &&
-          games.map(game => {
+        {this.props.games &&
+          this.props.games.map(game => {
             return (
               <div>{game.name}</div>
             );
