@@ -1,0 +1,7 @@
+@import 'variables';
+
+.buttons {
+  border-top: 1px solid $foreground-color;
+  margin-top: $margin-spacing * 2;
+  padding-top: $margin-spacing;
+}

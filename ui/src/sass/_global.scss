@@ -1,0 +1,14 @@
+@import 'variables';
+
+button {
+  background-color: $foreground-color;
+  border: none;
+  border-radius: $border-radius;
+  color: white;
+  cursor: pointer;
+  padding: $padding-controls-v $padding-controls-h;
+
+  &:hover {
+    background-color: $foreground-highlight-color;
+  }
+}
