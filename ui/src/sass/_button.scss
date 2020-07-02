@@ -20,7 +20,7 @@
   cursor: pointer;
   display: inline-block;
   font-size: $font-size-sm;
-  padding: $padding-controls-v $padding-controls-h;
+  padding: $padding-controls $padding-controls * 2;
   text-decoration: none;
   white-space: nowrap;
 

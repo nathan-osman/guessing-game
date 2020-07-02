@@ -2,7 +2,7 @@
 
 .input {
   border: 1px solid $foreground-color;
-  padding: $padding-controls-v $padding-controls-v;
+  padding: $padding-controls;
 
   &:focus {
     border-color: $foreground-highlight-color;
