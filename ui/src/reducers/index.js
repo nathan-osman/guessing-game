@@ -18,5 +18,6 @@ const lobby = (state = {}, action) => {
 
 export default combineReducers({
   lobby,
-  game
+  game,
+  network
 });
